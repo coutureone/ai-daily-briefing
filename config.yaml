@@ -1,13 +1,16 @@
 # 数据源配置
 sources:
   ai_news: "https://techcrunch.com/category/artificial-intelligence/"
+  ai_news_rss: "https://techcrunch.com/category/artificial-intelligence/feed/"
   web3_news: "https://www.coindesk.com/"
+  web3_news_rss: "https://www.coindesk.com/arc/outboundfeeds/rss/"
   venture_news: "https://techcrunch.com/category/venture/"
+  venture_news_rss: "https://techcrunch.com/category/venture/feed/"
   github_trending: "https://github.com/trending"
 
 # 输出配置
 output:
-  format: "text"  # text, markdown, json
+  format: "markdown"  # text, markdown, json
   language: "zh"  # zh, en
   
 # 数量限制
