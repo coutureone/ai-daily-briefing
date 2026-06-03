@@ -161,6 +161,22 @@ crontab -e
 0 8 * * * cd ~/ai-daily-briefing && python briefing.py
 ```
 
+### GitHub Actions + 钉钉群机器人
+
+本仓库已包含 `.github/workflows/daily-dingtalk.yml`，会在每天北京时间 08:00 自动生成早报并发送到钉钉群，也支持在 GitHub Actions 页面手动运行。
+
+配置步骤：
+
+1. 在钉钉群中添加「自定义机器人」，复制 Webhook。
+2. 安全设置建议选择「加签」，复制 Secret。
+3. 在 GitHub 仓库中打开 `Settings -> Secrets and variables -> Actions`。
+4. 添加仓库 Secret：
+   - `DINGTALK_WEBHOOK`：钉钉机器人 Webhook
+   - `DINGTALK_SECRET`：钉钉机器人加签 Secret；如果没有开启加签，可以不填
+5. 打开 `Actions -> Daily DingTalk Briefing -> Run workflow` 手动测试一次。
+
+GitHub Actions 的定时任务使用 UTC 时间；`0 0 * * *` 对应北京时间每天 08:00。
+
 ## 🎯 适用人群
 
 - AI/Web3 自媒体创作者

@@ -1,0 +1,36 @@
+name: Daily DingTalk Briefing
+
+on:
+  schedule:
+    # GitHub Actions schedules use UTC. 00:00 UTC is 08:00 in Asia/Shanghai.
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  send-briefing:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+      DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+      DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate briefing
+        run: python briefing.py
+
+      - name: Send to DingTalk
+        run: python scripts/send_dingtalk.py "briefing_$(date +%F).txt"
