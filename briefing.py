@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
 """
 AI Daily Briefing Generator
-为 AI/Web3 自媒体创作者生成每日早报
+为 AI 自媒体创作者生成中文每日早报
 
 数据源：
-- TechCrunch AI 分类
-- CoinDesk 加密货币新闻
-- TechCrunch Venture 分类
-- GitHub Trending
+- 量子位
+- InfoQ 中文
 
 作者：Rion Wu
 GitHub: https://github.com/Rion-Wu-tech/ai-daily-briefing
 """
 
 import os
-import sys
-import json
 import yaml
 from datetime import datetime
 from email.utils import parsedate_to_datetime
-from typing import List, Dict, Optional
-from urllib.parse import urljoin
+from typing import List, Dict
 from zoneinfo import ZoneInfo
 import requests
 from bs4 import BeautifulSoup
+
+
+DEFAULT_AI_KEYWORDS = [
+    'AI', '人工智能', '大模型', '模型', '智能体', 'Agent', 'OpenAI',
+    'DeepSeek', 'Qwen', '千问', '机器人', '多模态', '自动驾驶',
+    '英伟达', 'NVIDIA', '文心', '豆包', 'Claude', 'Codex',
+]
 
 
 class DailyBriefing:
@@ -48,16 +50,14 @@ class DailyBriefing:
         """默认配置"""
         return {
             'sources': {
-                'ai_news': 'https://techcrunch.com/category/artificial-intelligence/',
-                'ai_news_rss': 'https://techcrunch.com/category/artificial-intelligence/feed/',
-                'web3_news': 'https://www.coindesk.com/',
-                'web3_news_rss': 'https://www.coindesk.com/arc/outboundfeeds/rss/',
-                'venture_news': 'https://techcrunch.com/category/venture/',
-                'venture_news_rss': 'https://techcrunch.com/category/venture/feed/',
-                'github_trending': 'https://github.com/trending'
+                'ai_news_rss': [
+                    {'name': '量子位', 'url': 'https://www.qbitai.com/feed'},
+                    {'name': 'InfoQ 中文', 'url': 'https://www.infoq.cn/feed'},
+                ],
+                'ai_keywords': DEFAULT_AI_KEYWORDS,
             },
             'output': {
-                'format': 'text',
+                'format': 'markdown',
                 'language': 'zh'
             }
         }
@@ -100,184 +100,60 @@ class DailyBriefing:
             return parsed.astimezone(ZoneInfo('Asia/Shanghai')).strftime('%m-%d %H:%M')
         except (TypeError, ValueError):
             return value.replace('GMT', '').strip()
+
+    def _matches_ai_keywords(self, article: Dict) -> bool:
+        keywords = self.config.get('sources', {}).get('ai_keywords') or DEFAULT_AI_KEYWORDS
+        text = f"{article.get('title', '')} {article.get('summary', '')}"
+        return any(keyword.lower() in text.lower() for keyword in keywords)
     
     def fetch_ai_news(self, limit: int = 10) -> List[Dict]:
         """抓取 AI 热点新闻"""
         print("📡 正在抓取 AI 热点...")
-        url = self.config['sources']['ai_news']
+        sources = self.config['sources'].get('ai_news_rss', [])
+        if isinstance(sources, str):
+            sources = [{'name': 'AI 新闻', 'url': sources}]
         
         try:
-            rss_url = self.config['sources'].get('ai_news_rss')
-            if rss_url:
-                articles = self._fetch_rss(rss_url, 'TechCrunch', limit)
-                print(f"✅ 获取到 {len(articles)} 条 AI 新闻")
-                return articles
-
-            response = self.session.get(url, timeout=30)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
             articles = []
-            items = soup.select('article')[:limit]
-            
-            for item in items:
-                title_elem = item.select_one('h2 a, h3 a, h4 a')
-                time_elem = item.select_one('time')
-                
-                if title_elem:
-                    articles.append({
-                        'title': title_elem.get_text(strip=True),
-                        'url': urljoin(url, title_elem.get('href', '')),
-                        'time': time_elem.get_text(strip=True) if time_elem else 'N/A',
-                        'source': 'TechCrunch'
-                    })
-            
-            print(f"✅ 获取到 {len(articles)} 条 AI 新闻")
+            seen_urls = set()
+            seen_titles = set()
+
+            for source in sources:
+                source_name = source.get('name', 'AI 新闻')
+                rss_url = source.get('url')
+                if not rss_url:
+                    continue
+
+                try:
+                    fetched = self._fetch_rss(rss_url, source_name, limit * 2)
+                except Exception as source_error:
+                    print(f"⚠️ {source_name} 抓取失败: {source_error}")
+                    continue
+
+                for article in fetched:
+                    title = article.get('title', '')
+                    url = article.get('url', '')
+                    if url in seen_urls or title in seen_titles:
+                        continue
+                    if not self._matches_ai_keywords(article):
+                        continue
+
+                    seen_urls.add(url)
+                    seen_titles.add(title)
+                    articles.append(article)
+
+                    if len(articles) >= limit:
+                        print(f"✅ 获取到 {len(articles)} 条中文 AI 新闻")
+                        return articles
+
+            print(f"✅ 获取到 {len(articles)} 条中文 AI 新闻")
             return articles
-            
+
         except Exception as e:
             print(f"❌ 抓取 AI 新闻失败: {e}")
             return []
-    
-    def fetch_web3_news(self, limit: int = 3) -> List[Dict]:
-        """抓取 Web3 热点新闻"""
-        print("📡 正在抓取 Web3 热点...")
-        url = self.config['sources']['web3_news']
-        
-        try:
-            rss_url = self.config['sources'].get('web3_news_rss')
-            if rss_url:
-                articles = self._fetch_rss(rss_url, 'CoinDesk', limit)
-                for article in articles:
-                    article['sentiment'] = 'Neutral'
-                print(f"✅ 获取到 {len(articles)} 条 Web3 新闻")
-                return articles
 
-            response = self.session.get(url, timeout=30)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            articles = []
-            # CoinDesk 的结构可能需要根据实际页面调整
-            items = soup.select('article')[:limit]
-            
-            for item in items:
-                title_elem = item.select_one('h3, h2')
-                
-                if title_elem:
-                    articles.append({
-                        'title': title_elem.get_text(strip=True),
-                        'source': 'CoinDesk',
-                        'sentiment': 'Neutral'  # 默认中性
-                    })
-            
-            print(f"✅ 获取到 {len(articles)} 条 Web3 新闻")
-            return articles
-            
-        except Exception as e:
-            print(f"❌ 抓取 Web3 新闻失败: {e}")
-            return []
-    
-    def fetch_venture_news(self, limit: int = 5) -> List[Dict]:
-        """抓取投资经济新闻"""
-        print("📡 正在抓取投资经济新闻...")
-        url = self.config['sources']['venture_news']
-        
-        try:
-            rss_url = self.config['sources'].get('venture_news_rss')
-            if rss_url:
-                articles = self._fetch_rss(rss_url, 'TechCrunch', limit)
-                print(f"✅ 获取到 {len(articles)} 条投资新闻")
-                return articles
-
-            response = self.session.get(url, timeout=30)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            articles = []
-            items = soup.select('article')[:limit]
-            
-            for item in items:
-                title_elem = item.select_one('h2 a, h3 a, h4 a')
-                time_elem = item.select_one('time')
-                
-                if title_elem:
-                    articles.append({
-                        'title': title_elem.get_text(strip=True),
-                        'url': urljoin(url, title_elem.get('href', '')),
-                        'time': time_elem.get_text(strip=True) if time_elem else 'N/A',
-                        'source': 'TechCrunch'
-                    })
-            
-            print(f"✅ 获取到 {len(articles)} 条投资新闻")
-            return articles
-            
-        except Exception as e:
-            print(f"❌ 抓取投资新闻失败: {e}")
-            return []
-    
-    def fetch_github_trending(self, limit: int = 10) -> List[Dict]:
-        """抓取 GitHub Trending 项目"""
-        print("📡 正在抓取 GitHub Trending...")
-        url = self.config['sources']['github_trending']
-        
-        try:
-            response = self.session.get(url, timeout=30)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            projects = []
-            items = soup.select('article.Box-row')[:limit]
-            
-            for item in items:
-                repo_elem = item.select_one('h2 a')
-                desc_elem = item.select_one('p')
-                lang_elem = item.select_one('[itemprop="programmingLanguage"]')
-                stars_elem = item.select_one('a[href*="/stargazers"]')
-                today_stars_elem = item.select_one('.float-sm-right')
-                
-                if repo_elem:
-                    repo_name = repo_elem.get('href', '').strip('/')
-                    projects.append({
-                        'name': repo_name,
-                        'description': desc_elem.get_text(strip=True) if desc_elem else '',
-                        'language': lang_elem.get_text(strip=True) if lang_elem else 'Unknown',
-                        'stars': stars_elem.get_text(strip=True) if stars_elem else '0',
-                        'today_stars': today_stars_elem.get_text(strip=True) if today_stars_elem else '',
-                        'url': f"https://github.com/{repo_name}"
-                    })
-            
-            print(f"✅ 获取到 {len(projects)} 个 GitHub 项目")
-            return projects
-            
-        except Exception as e:
-            print(f"❌ 抓取 GitHub Trending 失败: {e}")
-            return []
-    
-    def generate_topics(self, ai_news: List[Dict], web3_news: List[Dict], 
-                       venture_news: List[Dict], github_projects: List[Dict]) -> List[str]:
-        """生成选题素材"""
-        topics = []
-        
-        # 基于热点新闻生成选题
-        if ai_news:
-            topics.append(f"「{ai_news[0]['title'][:20]}...」深度解析")
-        
-        if web3_news:
-            topics.append(f"「Web3 周报」{web3_news[0]['title'][:20]}等热点事件")
-        
-        if github_projects:
-            topics.append(f"「GitHub 周刊」{github_projects[0]['name']} 等优质开源项目推荐")
-        
-        # 补充通用选题
-        topics.append("「AI 工具测评」本周最值得关注的 5 个 AI 工具")
-        topics.append("「行业观察」AI/Web3 领域的最新趋势和机会")
-        
-        return topics[:5]
-    
-    def format_output(self, ai_news: List[Dict], web3_news: List[Dict],
-                     venture_news: List[Dict], github_projects: List[Dict],
-                     topics: List[str]) -> str:
+    def format_output(self, ai_news: List[Dict]) -> str:
         """格式化输出"""
         today = datetime.now()
         weekday_map = {
@@ -287,14 +163,10 @@ class DailyBriefing:
         weekday = weekday_map.get(today.strftime('%A'), '')
         date_str = today.strftime(f'%Y.%m.%d {weekday}')
         
-        output = f"### 🌅 Rion 每日早报 · {date_str}\n\n"
+        output = f"### 🌅 AI 中文早报 · {date_str}\n\n"
 
-        output += self._format_news_section("🤖 AI 热点", ai_news)
-        output += self._format_news_section("🔗 Web3 热点", web3_news, show_sentiment=True)
-        output += self._format_news_section("💰 投资 & 经济", venture_news)
-        output += self._format_github_section(github_projects)
-        output += self._format_topics_section(topics)
-        output += f"---\n🕐 {today.strftime('%Y.%m.%d')} 早报完毕"
+        output += self._format_news_section("🤖 今日 AI 热点", ai_news)
+        output += f"---\n🕐 {today.strftime('%Y.%m.%d')} AI 早报完毕"
         
         return output
 
@@ -314,43 +186,17 @@ class DailyBriefing:
 
         return output
 
-    def _format_github_section(self, projects: List[Dict]) -> str:
-        output = "#### ⭐ GitHub 优质项目\n\n"
-        if not projects:
-            return output + "> 今日暂未抓到 GitHub Trending 项目。\n\n"
-
-        for i, proj in enumerate(projects, 1):
-            description = proj['description'] or '暂无简介'
-            today_stars = f" | {proj['today_stars']}" if proj.get('today_stars') else ''
-            output += f"{i}. **[{proj['name']}]({proj['url']})**\n\n"
-            output += f"   语言：{proj['language']} | ⭐ {proj['stars']}{today_stars}\n\n"
-            output += f"   {description}\n\n"
-
-        return output
-
-    def _format_topics_section(self, topics: List[str]) -> str:
-        output = "#### 💡 今日选题素材\n\n"
-        for i, topic in enumerate(topics, 1):
-            output += f"{i}. {topic}\n\n"
-        return output
-    
     def generate(self) -> str:
         """生成完整早报"""
-        print("🚀 开始生成每日早报...\n")
+        print("🚀 开始生成 AI 中文早报...\n")
         
-        # 抓取各类数据
+        # 只抓取中文 AI 新闻
         ai_news = self.fetch_ai_news(10)
-        web3_news = self.fetch_web3_news(3)
-        venture_news = self.fetch_venture_news(5)
-        github_projects = self.fetch_github_trending(10)
-        
-        # 生成选题
-        topics = self.generate_topics(ai_news, web3_news, venture_news, github_projects)
         
         # 格式化输出
-        output = self.format_output(ai_news, web3_news, venture_news, github_projects, topics)
+        output = self.format_output(ai_news)
         
-        print("\n✅ 早报生成完成！\n")
+        print("\n✅ AI 中文早报生成完成！\n")
         return output
 
 

@@ -33,4 +33,4 @@ jobs:
         run: python briefing.py
 
       - name: Send to DingTalk
-        run: python scripts/send_dingtalk.py "briefing_$(date +%F).txt"
+        run: python scripts/send_dingtalk.py "briefing_$(date +%F).txt" --title "每日 AI 中文早报"

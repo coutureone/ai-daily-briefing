@@ -1,14 +1,12 @@
 # AI Daily Briefing 🌅
 
-为 AI/Web3 自媒体创作者打造的每日早报生成工具。自动抓取 AI 热点、Web3 动态、投资经济、GitHub 优质项目，并生成选题素材。
+为 AI 自媒体创作者打造的中文每日早报生成工具。自动抓取中文 AI 热点资讯，并推送到钉钉群。
 
 ## ✨ 特性
 
-- 🤖 **AI 热点**：自动抓取 TechCrunch AI 分类最新 10 条新闻
-- 🔗 **Web3 热点**：CoinDesk 最新 3 条加密货币新闻（带情绪标签）
-- 💰 **投资 & 经济**：TechCrunch Venture 分类最新 5 条融资新闻
-- ⭐ **GitHub Trending**：今日 Trending 前 10 个项目（含语言、Stars、今日新增）
-- 💡 **选题素材**：基于热点自动生成 5 个内容创作选题建议
+- 🤖 **中文 AI 热点**：自动抓取量子位、InfoQ 中文等 RSS 源
+- 🧹 **AI 关键词过滤**：只保留 AI、大模型、智能体、机器人等相关内容
+- 📮 **钉钉推送**：通过 GitHub Actions 每天北京时间 08:00 自动推送
 
 ## 🚀 快速开始
 
@@ -78,38 +76,16 @@ python briefing.py
 ## 📋 输出示例
 
 ```
-==== 🌅 Rion 每日早报 · 2026.05.05 周二 ====
+### 🌅 AI 中文早报 · 2026.06.03 周三
 
-━━━━━━━━━━━━━━━━━━
-🤖 AI 热点（10条）
-━━━━━━━━━━━━━━━━━━
+#### 🤖 今日 AI 热点
 
-1. Nvidia CEO 黄仁勋称 AI 正在"创造大量工作机会"
-来源：TechCrunch | 3小时前
-尽管工人们担心 AI 带来的就业威胁...
+1. **[OpenAI挖走中科大少年班校友！12岁上大学，哈佛史上最年轻正教授](https://www.qbitai.com/)**
 
-━━━━━━━━━━━━━━━━━━
-🔗 Web3 热点（3条）
-━━━━━━━━━━━━━━━━━━
+   来源：量子位 | 06-02 22:54
 
-1. 比特币曾经讨厌通胀，现在可能相反了
-来源：CoinDesk | 4:45 PM（Positive）
-比特币正在与通胀信号一起上涨...
-
-━━━━━━━━━━━━━━━━━━
-💰 投资 & 经济（5条）
-━━━━━━━━━━━━━━━━━━
-
-━━━━━━━━━━━━━━━━━━
-⭐ GitHub 优质项目（10条）
-━━━━━━━━━━━━━━━━━━
-
-━━━━━━━━━━━━━━━━━━
-💡 今日选题素材（5个）
-━━━━━━━━━━━━━━━━━━
-
-1. 「AI 智能体编排平台大爆发：ruflo 单日暴涨 2600 星背后的故事」
-热点：ruflo 项目今日新增 2,598 stars → ...
+---
+🕐 2026.06.03 AI 早报完毕
 ```
 
 ## 🛠️ 配置
@@ -122,7 +98,7 @@ python briefing.py
 ---
 name: daily-briefing
 description: 为 Rion 生成每日早报...
-tags: [daily, briefing, news, ai, web3, github]
+tags: [daily, briefing, news, ai, zh]
 ---
 ```
 
@@ -132,14 +108,15 @@ tags: [daily, briefing, news, ai, web3, github]
 
 ```yaml
 sources:
-  ai_news: "https://techcrunch.com/category/artificial-intelligence/"
-  web3_news: "https://www.coindesk.com/"
-  venture_news: "https://techcrunch.com/category/venture/"
-  github_trending: "https://github.com/trending"
+  ai_news_rss:
+    - name: "量子位"
+      url: "https://www.qbitai.com/feed"
+    - name: "InfoQ 中文"
+      url: "https://www.infoq.cn/feed"
 
 output:
-  format: "text"  # text, markdown, json
-  language: "zh"  # zh, en
+  format: "markdown"
+  language: "zh"
 ```
 
 ## 📅 定时任务
@@ -179,7 +156,7 @@ GitHub Actions 的定时任务使用 UTC 时间；`0 0 * * *` 对应北京时间
 
 ## 🎯 适用人群
 
-- AI/Web3 自媒体创作者
+- AI 自媒体创作者
 - 科技内容创作者
 - 需要每日科技资讯的从业者
 - 想要快速了解行业动态的开发者
@@ -209,9 +186,8 @@ MIT License
 ## 🙏 致谢
 
 - [Hermes Agent](https://github.com/NousResearch/hermes) - 强大的 AI Agent 框架
-- [TechCrunch](https://techcrunch.com/) - AI 和科技新闻来源
-- [CoinDesk](https://www.coindesk.com/) - 加密货币新闻来源
-- [GitHub Trending](https://github.com/trending) - 优质开源项目发现
+- [量子位](https://www.qbitai.com/) - 中文 AI 新闻来源
+- [InfoQ 中文](https://www.infoq.cn/) - 中文技术与 AI 新闻来源
 
 ---
 

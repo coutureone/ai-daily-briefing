@@ -1,12 +1,30 @@
 # 数据源配置
 sources:
-  ai_news: "https://techcrunch.com/category/artificial-intelligence/"
-  ai_news_rss: "https://techcrunch.com/category/artificial-intelligence/feed/"
-  web3_news: "https://www.coindesk.com/"
-  web3_news_rss: "https://www.coindesk.com/arc/outboundfeeds/rss/"
-  venture_news: "https://techcrunch.com/category/venture/"
-  venture_news_rss: "https://techcrunch.com/category/venture/feed/"
-  github_trending: "https://github.com/trending"
+  ai_news_rss:
+    - name: "量子位"
+      url: "https://www.qbitai.com/feed"
+    - name: "InfoQ 中文"
+      url: "https://www.infoq.cn/feed"
+  ai_keywords:
+    - "AI"
+    - "人工智能"
+    - "大模型"
+    - "模型"
+    - "智能体"
+    - "Agent"
+    - "OpenAI"
+    - "DeepSeek"
+    - "Qwen"
+    - "千问"
+    - "机器人"
+    - "多模态"
+    - "自动驾驶"
+    - "英伟达"
+    - "NVIDIA"
+    - "文心"
+    - "豆包"
+    - "Claude"
+    - "Codex"
 
 # 输出配置
 output:
@@ -16,7 +34,3 @@ output:
 # 数量限制
 limits:
   ai_news: 10
-  web3_news: 3
-  venture_news: 5
-  github_projects: 10
-  topics: 5
